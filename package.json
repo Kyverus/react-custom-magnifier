@@ -1,0 +1,21 @@
+{
+  "name": "@kyverus/react-custom-magnifier",
+  "version": "1.0.0",
+  "description": "A Customizable React Component for Magnifying Images",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "react-magnifier",
+    "magnifier",
+    "image-magnifier"
+  ],
+  "author": "Kyverus",
+  "license": "ISC",
+  "peerDependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  }
+}
