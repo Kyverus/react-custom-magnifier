@@ -1,0 +1,21 @@
+#magnifier {
+  position: relative;
+  display: inline-flex;
+  background-color: blue;
+}
+
+#magnifier-cursor {
+  position: fixed;
+  z-index: 2000;
+  border-radius: 9999px;
+  border: 2px solid;
+  background-repeat: "no-repeat";
+}
+
+#magnifier-display {
+  z-index: 1000;
+  pointer-events: none;
+  overflow: hidden;
+  position: absolute;
+  background-repeat: "no-repeat";
+}

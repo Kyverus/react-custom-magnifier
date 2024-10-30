@@ -1,214 +1,201 @@
 import React, { useState, useEffect, useRef } from "react";
+import "./ImageMagnifier.css";
 
-function ImageMagnifier({
-  src,
-  boxX,
-  boxY,
-  width,
-  height,
-  magnifierBorderColor = "black",
-  boxBorderColor = "black",
-}) {
-  const imgRef = useRef(null);
-  const [zoom, setZoom] = useState({ x: 0, y: 0 });
-  const [hiddenImg, setHiddenImg] = useState(true);
-  const [parentSize, setparentSize] = useState({ x: 0, y: 0 });
-  const [boxPosition, setBoxPosition] = useState({
-    x: 0,
-    y: 0,
-  });
-  const [magnifierPosition, setMagnifierPosition] = useState({
-    x: 0,
-    y: 0,
-  });
+function ImageMagnifier({ src, initialWidth, fixedWidth, cursorOnly }) {
+  const [magnifierSize, setMagnifierSize] = useState({ width: 0, height: 0 });
+
+  const [displayPosition, setDisplayPosition] = useState({ x: 0, y: 0 });
+  const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 });
+
+  const cursorRef = useRef(null);
+  const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
+  const [imageWidth, setImageWidth] = useState(false);
 
   useEffect(() => {
-    const parent = document.getElementById("magnifier-parent");
+    checkImageWidth();
 
-    parent.addEventListener("mousemove", onMouseMove);
-    parent.addEventListener("mouseleave", hideImage);
-    parent.addEventListener("mouseenter", showImage);
+    window.addEventListener("resize", checkImageWidth);
 
     return () => {
-      parent.removeEventListener("mousemove", onMouseMove);
-      parent.removeEventListener("mouseleave", hideImage);
-      parent.removeEventListener("mouseenter", showImage);
+      window.removeEventListener("resize", checkImageWidth);
     };
   }, []);
+
+  function checkImageWidth() {
+    const parent = document.getElementById("magnifier").parentElement;
+    const parentWidth =
+      parent.id == "root" ? window.innerWidth : parent.clientWidth;
+
+    let width = initialWidth
+      ? initialWidth
+      : fixedWidth
+      ? "max-content"
+      : "100%";
+
+    if (initialWidth && !fixedWidth) {
+      if (initialWidth >= parentWidth) {
+        console.log("small", width);
+        width = "100%";
+      }
+    }
+
+    if (imageWidth != width) {
+      setImageWidth(width);
+    }
+  }
 
   useEffect(() => {
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         if (entry.contentBoxSize) {
-          setparentSize({
+          setMagnifierSize({
+            width: entry.contentRect.width,
+            height: entry.contentRect.height,
+          });
+          setDisplayPosition({
             x: entry.contentRect.width,
-            y: entry.contentRect.height,
+            y: entry.contentRect.height / 2,
           });
         }
       }
     });
-    const parent = document.getElementById("magnifier-parent");
-    resizeObserver.observe(parent);
+    const magnifier = document.getElementById("magnifier");
+    resizeObserver.observe(magnifier);
+
+    return () => {
+      resizeObserver.unobserve(magnifier);
+    };
   }, []);
 
   function onMouseMove(event) {
-    const parent = document.getElementById("magnifier-parent");
-    var rect = parent.getBoundingClientRect();
+    const magnifier = document.getElementById("magnifier");
 
-    let mouseX = event.clientX - imgRef.current.clientWidth / 2;
-    let mouseY = event.clientY - imgRef.current.clientHeight / 2;
+    const cursorWidth = cursorRef.current.clientWidth;
+    const cursorHeight = cursorRef.current.clientHeight;
 
-    if (mouseX <= rect.left) {
-      mouseX = rect.left;
-    }
+    cursorHandler(magnifier, event, cursorWidth, cursorHeight);
+    zoomHandler(magnifier, event, cursorWidth, cursorHeight);
+  }
 
-    if (mouseX + imgRef.current.clientWidth >= rect.right) {
-      mouseX = rect.right - imgRef.current.clientWidth;
-    }
+  function cursorHandler(magnifier, event, cursorWidth, cursorHeight) {
+    var rect = magnifier.getBoundingClientRect();
 
-    if (mouseY <= rect.top) {
-      mouseY = rect.top;
-    }
+    let mouseX = event.clientX - cursorWidth / 2;
+    let mouseY = event.clientY - cursorHeight / 2;
 
-    if (mouseY + imgRef.current.clientHeight >= rect.bottom) {
-      mouseY = rect.bottom - imgRef.current.clientHeight;
-    }
+    mouseX = limitValue(mouseX, rect.left, rect.right - cursorWidth);
 
-    setBoxPosition({
+    mouseY = limitValue(mouseY, rect.top, rect.bottom - cursorHeight);
+
+    setCursorPosition({
       x: mouseX,
       y: mouseY,
     });
+  }
 
-    mouseX = event.clientX - imgRef.current.clientWidth / 4;
-    mouseY = event.clientY - imgRef.current.clientHeight / 4;
+  function zoomHandler(magnifier, event, cursorWidth, cursorHeight) {
+    const rect = magnifier.getBoundingClientRect();
+    let x = event.clientX - rect.left - cursorWidth / 2;
+    let y = event.clientY - rect.top - cursorHeight / 2;
 
-    if (mouseX <= rect.left) {
-      mouseX = rect.left;
+    let boundedMagnifierWidth = magnifier.clientWidth - cursorWidth / 2;
+    let boundedMagnifierHeight = magnifier.clientHeight - cursorHeight / 2;
+
+    x = limitValue(x, 0, boundedMagnifierWidth);
+    y = limitValue(y, 0, boundedMagnifierHeight);
+
+    let zoomPosX = (x * 100) / (magnifier.clientWidth - cursorWidth);
+    let zoomPosy = (y * 100) / (magnifier.clientHeight - cursorHeight);
+
+    if (cursorOnly) {
+      x = event.clientX - rect.left - cursorWidth / 4;
+      y = event.clientY - rect.top - cursorHeight / 4;
+
+      boundedMagnifierWidth = magnifier.clientWidth - cursorWidth / 4;
+      boundedMagnifierHeight = magnifier.clientHeight - cursorHeight / 4;
+
+      x = limitValue(x, 0, boundedMagnifierWidth);
+      y = limitValue(y, 0, boundedMagnifierHeight);
+
+      zoomPosX = (x * 100) / (magnifier.clientWidth - cursorWidth / 2);
+      zoomPosy = (y * 100) / (magnifier.clientHeight - cursorHeight / 2);
     }
 
-    if (mouseX + imgRef.current.clientWidth / 2 >= rect.right) {
-      mouseX = rect.right - imgRef.current.clientWidth / 2;
-    }
+    zoomPosX = limitValue(zoomPosX, 0, 100);
+    zoomPosy = limitValue(zoomPosy, 0, 100);
 
-    if (mouseY <= rect.top) {
-      mouseY = rect.top;
-    }
-
-    if (mouseY + imgRef.current.clientHeight / 2 >= rect.bottom) {
-      mouseY = rect.bottom - imgRef.current.clientHeight / 2;
-    }
-
-    setMagnifierPosition({
-      x: mouseX,
-      y: mouseY,
+    setZoomPosition({
+      x: zoomPosX,
+      y: zoomPosy,
     });
+  }
 
-    var rectX = event.clientX - rect.left;
-    var rectY = event.clientY - rect.top;
-
-    const limit = 4; //relative to zoombox
-
-    var x = rectX - imgRef.current.clientWidth / limit;
-    var y = rectY - imgRef.current.clientHeight / limit;
-
-    if (x <= 0) {
-      x = 0;
-    }
-
-    if (x >= parent.clientWidth - imgRef.current.clientWidth / limit) {
-      x = parent.clientWidth - imgRef.current.clientWidth / limit;
-    }
-
-    if (y <= 0) {
-      y = 0;
-    }
-
-    if (y >= parent.clientHeight - imgRef.current.clientHeight / limit) {
-      y = parent.clientHeight - imgRef.current.clientHeight / limit;
-    }
-
-    let zoomX =
-      (x * 100) /
-      (parent.clientWidth - imgRef.current.clientWidth / (limit / 2));
-    let zoomY =
-      (y * 100) /
-      (parent.clientHeight - imgRef.current.clientHeight / (limit / 2));
-
-    if (zoomX <= 0) {
-      zoomX = 0;
-    }
-
-    if (zoomX >= 100) {
-      zoomX = 100;
-    }
-
-    if (zoomY <= 0) {
-      zoomY = 0;
-    }
-
-    if (zoomY >= 100) {
-      zoomY = 100;
-    }
-
-    console.log(zoomX, zoomY);
-
-    setZoom({
-      x: zoomX,
-      y: zoomY,
-    });
+  function limitValue(value, min, max) {
+    if (value <= min) return min;
+    if (value >= max) return max;
+    return value;
   }
 
   function showImage() {
-    setHiddenImg(false);
+    document.getElementById("magnifier-cursor").style.display = "block";
+    if (!cursorOnly) {
+      document.getElementById("magnifier-display").style.display = "block";
+    }
   }
 
   function hideImage() {
-    setHiddenImg(true);
+    document.getElementById("magnifier-cursor").style.display = "none";
+    if (!cursorOnly) {
+      document.getElementById("magnifier-display").style.display = "none";
+    }
   }
 
   return (
-    <div id="magnifier-parent" style={{ position: "relative" }}>
-      <div
-        id="magnifierBox"
-        ref={imgRef}
+    <div
+      id="magnifier"
+      onMouseMove={onMouseMove}
+      onMouseLeave={hideImage}
+      onMouseEnter={showImage}
+    >
+      <img
+        src={src}
         style={{
-          zIndex: "1000",
-          pointerEvents: "none",
-          overflow: "hidden",
-          position: "absolute",
-          display: `${hiddenImg ? "none" : "block"}`,
-          border: "2px solid",
-          borderColor: boxBorderColor,
-          width: `${parentSize.x * 0.5}px`,
-          height: `${parentSize.y * 0.5}px`,
-          background: `url(${src})`,
-          backgroundRepeat: "no-repeat",
-          left: `${boxX && boxY ? boxX : boxPosition.x}px`,
-          top: `${boxX && boxY ? boxY : boxPosition.y}px`,
-          backgroundSize: `${width * 2}px ${height * 2}px`,
-          backgroundPosition: `${zoom.x}% ${zoom.y}%`,
+          width: imageWidth,
+        }}
+      />
+
+      <div
+        id="magnifier-cursor"
+        ref={cursorRef}
+        style={{
+          width: `${magnifierSize.width * 0.25}px`,
+          height: `${magnifierSize.height * 0.25}px`,
+          left: `${cursorPosition.x}px`,
+          top: `${cursorPosition.y}px`,
+          backgroundImage: `url(${src})`,
+          backgroundSize: cursorOnly
+            ? `${magnifierSize.width * 2}px ${magnifierSize.height * 2}px`
+            : `${magnifierSize.width}px ${magnifierSize.height}px`,
+          backgroundPosition: `${zoomPosition.x}% ${zoomPosition.y}%`,
         }}
       ></div>
-      <div
-        id="magnifier"
-        style={{
-          position: "fixed",
-          zIndex: "2000",
-          borderRadius: "9999px",
-          display: `${hiddenImg ? "none" : "block"}`,
-          border: "2px solid",
-          borderColor: magnifierBorderColor,
-          width: `${parentSize.x * 0.25}px`,
-          height: `${parentSize.y * 0.25}px`,
-          background: `url(${src})`,
-          backgroundRepeat: "no-repeat",
-          left: `${magnifierPosition.x}px`,
-          top: `${magnifierPosition.y}px`,
-          backgroundSize: `${width}px ${height}px`,
-          backgroundPosition: `${zoom.x}% ${zoom.y}%`,
-        }}
-      ></div>
-      <img src={src} style={{ width: width, height: height }} />
+
+      {!cursorOnly && (
+        <div
+          id="magnifier-display"
+          style={{
+            width: `${magnifierSize.width * 0.5}px`,
+            height: `${magnifierSize.height * 0.5}px`,
+            left: `${displayPosition.x}px`,
+            top: `${displayPosition.y}px`,
+            backgroundImage: `url(${src})`,
+            backgroundSize: `${magnifierSize.width * 2}px ${
+              magnifierSize.height * 2
+            }px`,
+            backgroundPosition: `${zoomPosition.x}% ${zoomPosition.y}%`,
+          }}
+        ></div>
+      )}
     </div>
   );
 }
