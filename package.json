@@ -1,6 +1,6 @@
 {
   "name": "@kyverus/react-custom-magnifier",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "A Customizable React Component for Magnifying Images",
   "main": "src/index.js",
   "type": "module",

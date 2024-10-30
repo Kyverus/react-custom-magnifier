@@ -172,7 +172,7 @@ function ImageMagnifier({ src, initialWidth, fixedWidth, cursorOnly }) {
           height: `${magnifierSize.height * 0.25}px`,
           left: `${cursorPosition.x}px`,
           top: `${cursorPosition.y}px`,
-          backgroundImage: `url(${src})`,
+          backgroundImage: `url("${src}")`,
           backgroundSize: cursorOnly
             ? `${magnifierSize.width * 2}px ${magnifierSize.height * 2}px`
             : `${magnifierSize.width}px ${magnifierSize.height}px`,
@@ -188,7 +188,7 @@ function ImageMagnifier({ src, initialWidth, fixedWidth, cursorOnly }) {
             height: `${magnifierSize.height * 0.5}px`,
             left: `${displayPosition.x}px`,
             top: `${displayPosition.y}px`,
-            backgroundImage: `url(${src})`,
+            backgroundImage: `url("${src}")`,
             backgroundSize: `${magnifierSize.width * 2}px ${
               magnifierSize.height * 2
             }px`,
