@@ -12,6 +12,10 @@
     "magnifier",
     "image-magnifier"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kyverus-react-packages/react-custom-magnifier"
+  },
   "author": "Kyverus",
   "license": "ISC",
   "peerDependencies": {
